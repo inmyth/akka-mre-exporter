@@ -13,14 +13,10 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http-xml"        % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-stream"          % akkaVersion,
   "com.typesafe.play" %% "play-json"            % "2.6.8",
-  "com.typesafe.play" %% "play"                 % "2.6.11",
   "javax.inject" % "javax.inject" % "1",
   "com.neovisionaries" % "nv-websocket-client" % "2.3",
   "com.typesafe.play" %% "play-functional" % "2.6.8",
   "com.beachape.filemanagement" %% "schwatcher" % "0.3.2",
-  "com.typesafe.slick" %% "slick" % "3.2.2",
-  "mysql" % "mysql-connector-java" % "5.1.6",
-  "org.slf4j" % "slf4j-nop" % "1.6.4",
   "com.typesafe.akka" %% "akka-http-testkit"    % akkaHttpVersion % Test,
   "com.typesafe.akka" %% "akka-testkit"         % akkaVersion     % Test,
   "com.typesafe.akka" %% "akka-stream-testkit"  % akkaVersion     % Test,
@@ -30,3 +26,8 @@ libraryDependencies ++= Seq(
 excludeDependencies += "commons-logging" % "commons-logging"
 libraryDependencies += "com.typesafe" % "config" % "1.3.2"
 //libraryDependencies += "com.lightbend.akka" %% "akka-stream-alpakka-slick" % "0.17"
+libraryDependencies ++= Seq(
+  "com.typesafe.slick" %% "slick" % "3.2.2",
+  "org.slf4j" % "slf4j-nop" % "1.6.4",
+  "com.typesafe.slick" %% "slick-hikaricp" % "3.2.2"
+)

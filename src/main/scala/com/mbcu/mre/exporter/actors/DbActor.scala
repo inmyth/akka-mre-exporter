@@ -4,7 +4,7 @@ import akka.Done
 import akka.actor.Actor
 import akka.stream.alpakka.slick.scaladsl.{Slick, SlickSession}
 import akka.stream.scaladsl._
-import com.mbcu.mre.exporter.models.Account
+import com.mbcu.mre.exporter.tables.Account
 import slick.jdbc.GetResult
 import slick.lifted.TableQuery
 
