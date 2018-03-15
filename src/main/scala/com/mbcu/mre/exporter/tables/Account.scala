@@ -3,7 +3,7 @@ package com.mbcu.mre.exporter.tables
 import java.time.ZonedDateTime
 import scalikejdbc.{SQLSyntaxSupport, WrappedResultSet}
 
-case class Account(account : String, hash : String, ledgerIndex : Int, date : ZonedDateTime, transaction : String)
+case class Account(account : String, hash : String, ledgerIndex : Int, date : Long, humanDate : ZonedDateTime, txnType : String, txnAcc : String, transaction : String)
 object Account extends SQLSyntaxSupport[Account] {
 
   override val tableName = "account"
@@ -11,8 +11,11 @@ object Account extends SQLSyntaxSupport[Account] {
     rs.string("account"),
     rs.string("hash"),
     rs.int("ledger_index"),
-    rs.dateTime("date"),
-    rs.string("transaction")
+    rs.long("date"),
+    rs.dateTime("human_date"),
+    rs.string("transaction_type"),
+    rs.string("txn_account"),
+    rs.string("transaction"),
   )
 }
 
