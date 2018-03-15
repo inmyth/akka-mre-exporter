@@ -27,7 +27,13 @@ excludeDependencies += "commons-logging" % "commons-logging"
 libraryDependencies += "com.typesafe" % "config" % "1.3.2"
 //libraryDependencies += "com.lightbend.akka" %% "akka-stream-alpakka-slick" % "0.17"
 libraryDependencies ++= Seq(
-  "com.typesafe.slick" %% "slick" % "3.2.2",
-  "org.slf4j" % "slf4j-nop" % "1.6.4",
-  "com.typesafe.slick" %% "slick-hikaricp" % "3.2.2"
+  "org.scalikejdbc" %% "scalikejdbc"       % "3.2.1",
+  "mysql" % "mysql-connector-java"         % "8.0.9-rc",
+  "org.scalikejdbc" %% "scalikejdbc-config"  % "3.2.1",
+  "ch.qos.logback"  %  "logback-classic"   % "1.2.3",
+  "commons-pool" % "commons-pool" % "1.6",
+  "commons-dbcp" % "commons-dbcp" % "1.4"
+
+
 )
+

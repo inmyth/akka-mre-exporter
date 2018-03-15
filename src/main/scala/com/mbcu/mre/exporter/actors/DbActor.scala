@@ -1,28 +1,70 @@
 package com.mbcu.mre.exporter.actors
 
+import java.sql.Timestamp
+import java.time.ZonedDateTime
+
 import akka.Done
 import akka.actor.Actor
-import akka.stream.alpakka.slick.scaladsl.{Slick, SlickSession}
-import akka.stream.scaladsl._
 import com.mbcu.mre.exporter.tables.Account
-import slick.jdbc.GetResult
-import slick.lifted.TableQuery
+import akka.stream.scaladsl._
+import org.joda.time.DateTime
+import play.api.libs.json.{JsValue, Json}
+import scalikejdbc.AutoSession
 
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.Duration
+import scalikejdbc._
 
 
+object DbActor {
+
+  def parseAccountTx(raw :String) : Seq[Account] = {
+    var res : Seq[Account] = Seq.empty[Account]
+    val jsValue : JsValue = Json.parse(raw)
+    val jsResult = jsValue \ "result"
+    val account = (jsResult \ "account").as[String]
+    res +:= new Account(account, "bb", 7, ZonedDateTime.now(), "aaaa")
+    val jsTransactions = (jsResult \ "transactions").as[List[JsValue]]
+    for (jsTransaction <- jsTransactions) {
+      val hash = ((jsTransaction \ "tx") \ "hash").as[String]
+      println(hash)
+    }
+
+
+    res
+
+  }
+}
 class DbActor extends Actor {
+
+implicit val session = AutoSession
 
   override def receive: Receive = {
     case "start" =>
-      implicit val session = SlickSession.forConfig("slick-mysql")
-//      implicit val getUserResult = GetResult(r => User(r.nextInt, r.nextString))
-      val accs = TableQuery[Account]
-      val done: Future[Done] =
-        Slick
-          .source(sql"SELECT ID, NAME FROM ALPAKKA_SLICK_SCALADSL_TEST_USERS".as[Account])
-          .log("user")
-          .runWith(Sink.ignore)
+
+
+      val account = "ee"
+      val hash = "bb"
+      val ledgerIndex = 6
+      val date = ZonedDateTime.now
+      val transaction = "adasdasd"
+
+      val c = Account.column
+      sql"""insert into ${Account.table} (${c.account}, ${c.hash}, ${c.ledgerIndex}, ${c.date}, ${c.transaction})
+           values ($account, $hash, $ledgerIndex, $date, $transaction)
+           ON DUPLICATE KEY UPDATE ${c.hash} = ${c.hash}"""
+        .update.apply()
+
+
+//      withSQL {
+//        insert.into(Account).values("aa", "dd", 5, ZonedDateTime.now)
+//      }.update.apply()
+
+
+      val accounts: List[Account] = sql"select * from account".map(rs => Account(rs)).list.apply()
+      accounts.foreach(println)
+
   }
+
 
 }
