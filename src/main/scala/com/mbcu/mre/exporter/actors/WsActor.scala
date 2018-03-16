@@ -32,7 +32,7 @@ class WsActor(url: String) extends Actor {
   override def receive: Receive = {
 
     case "start" =>
-      main = Some(sender)
+      main = Some(sender())
       val factory = new WebSocketFactory
       val websocket = factory.createSocket(url)
       websocket.addListener(ScalaWebSocketListener)

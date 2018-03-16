@@ -90,5 +90,7 @@ project/plugins/project/
 .cache-main
 .jar
 
+log/
+
 *.conf
 trade_wallet_addresses.txt

@@ -16,5 +16,14 @@ class MyUtilsTest extends FunSuite {
   }
 
 
-
+  test("ripple epoch to date") {
+    val t = 569937733L
+    val res = MyUtils.toHumanDate(t)
+    assert(res.getYear === 2018)
+    assert(res.getMonthValue === 1)
+    assert(res.getDayOfMonth === 22)
+    assert(res.getSecond === 13)
+    assert(res.getZone === ZoneId.of("Z"))
+    assert(res.toString === "2018-01-22T12:02:13Z")
+  }
 }

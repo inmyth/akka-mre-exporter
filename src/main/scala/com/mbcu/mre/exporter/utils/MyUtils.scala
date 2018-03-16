@@ -1,6 +1,6 @@
 package com.mbcu.mre.exporter.utils
 
-import java.time.ZonedDateTime
+import java.time.{Instant, ZoneId, ZonedDateTime}
 import java.time.format.DateTimeFormatterBuilder
 
 import com.mbcu.mre.exporter.tables.Account
@@ -15,6 +15,10 @@ object MyUtils {
   }
 
 
+  def toLinuxEpoch(rippleEpoch : Long): Long = rippleEpoch + 946684800
 
+
+  def toHumanDate(rippleEpoch : Long) : ZonedDateTime = ZonedDateTime.ofInstant(Instant.ofEpochSecond(toLinuxEpoch(rippleEpoch)), ZoneId.of("Z"))
 
 }
+

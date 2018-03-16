@@ -4,9 +4,12 @@ import java.sql.Timestamp
 import java.time.ZonedDateTime
 
 import akka.Done
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
 import com.mbcu.mre.exporter.tables.Account
 import akka.stream.scaladsl._
+import com.mbcu.mre.exporter.actors.DbActor.{BatchCompleted, StoreAccountTx}
+import com.mbcu.mre.exporter.models.Marker
+import com.mbcu.mre.exporter.utils.{MyLogging, MyUtils}
 import org.joda.time.DateTime
 import play.api.libs.json.{JsValue, Json}
 import scalikejdbc.AutoSession
@@ -18,72 +21,78 @@ import scalikejdbc._
 
 object DbActor {
 
-  def parseAccountTx(raw :String) : Seq[Account] = {
+  case class StoreAccountTx(raw : String)
+
+  case class BatchCompleted(account : String, nextMarker : Option[Marker])
+
+  def toAccTxBatchParams(ins : Seq[Account]) : Seq[Seq[Any]] = {
+    //account, hash, ledger_index, date, human_date, transaction_type, txn_account, transaction
+    ins.map(d => Seq(d.account, d.hash, d.ledgerIndex, d.date, d.humanDate, d.txnType, d.txnAcc, d.transaction))
+  }
+
+  def parseAccountTx(jsValue : JsValue) : Seq[Account] = {
+
     var res : Seq[Account] = Seq.empty[Account]
-    val jsValue : JsValue = Json.parse(raw)
+    val account = parseAccount(jsValue)
     val jsResult = jsValue \ "result"
-    val account = (jsResult \ "account").as[String]
-    res +:= new Account(account, "bb", 7, 57745634, ZonedDateTime.now(), "Payment", "r3PDtZSa5LiYp1Ysn1vMuMzB59RzV3W9QH", "aaaa")
     val jsTransactions = (jsResult \ "transactions").as[List[JsValue]]
     for (jsTransaction <- jsTransactions) {
-      val hash = ((jsTransaction \ "tx") \ "hash").as[String]
-      println(hash)
+      res +:= parseTransactionItem(jsTransaction)(account)
     }
-
-
     res
-
   }
+
+  def parseAccount(jsValue : JsValue) : String = {
+    val jsResult = jsValue \ "result"
+    val account = (jsResult \ "account").as[String]
+    account
+  }
+
+  def parseMarker(jsValue : JsValue) : Option[Marker] = {
+    var res : Option[Marker] = None
+    val jsResult = jsValue \ "result"
+    if ((jsResult \ "marker").isDefined) res = (jsResult \ "marker").asOpt[Marker]
+    res
+  }
+
+  def parseTransactionItem(t : JsValue)(account : String) : Account = {
+    val tx = t \ "tx"
+    val hash = (tx \ "hash").as[String]
+    val txnAccount = (tx \ "Account").as[String]
+    val date = (tx \ "date").as[Long]
+    val humanDate = MyUtils.toHumanDate(date)
+    val ledgerIndex = (tx \ "ledger_index").as[Int]
+    val txnType = (tx \ "TransactionType").as[String]
+    val transaction = t.toString()
+    Account(account, hash, ledgerIndex, date, humanDate, txnType, txnAccount, transaction)
+  }
+
+
 }
-class DbActor extends Actor {
+class DbActor extends Actor with MyLogging{
 
 implicit val session: AutoSession.type = AutoSession
+var mainActor : Option[ActorRef] = None
 
   override def receive: Receive = {
-    case "start" =>
+    case "start" => mainActor = Some(sender())
 
-
-      val account = "ee"
-      val hash = "bb"
-      val ledgerIndex = 6
-      val date = ZonedDateTime.now
-      val transaction = "adasdasd"
-      val data = Seq(
-        Seq('account -> "ff", 'hash -> "gg", 'ledgerIndex -> 8, 'date -> ZonedDateTime.now, 'transaction -> "dggdfgf"),
-        Seq('account -> "uu", 'hash -> "kk", 'ledgerIndex -> 9, 'date -> ZonedDateTime.now, 'transaction -> "ikgj")
-      )
-      val c = Account.column
-//      sql"""insert into ${Account.table} (${c.account}, ${c.hash}, ${c.ledgerIndex}, ${c.date}, ${c.transaction})
-//           values ($account, $hash, $ledgerIndex, $date, $transaction)
-//           ON DUPLICATE KEY UPDATE ${c.hash} = ${c.hash}"""
-//        .update.apply()
-//      sql"""insert into main.account (${c.account}, ${c.hash}, ${c.ledgerIndex}, ${c.date}, ${c.transaction})
-//           values ($account, $hash, $ledgerIndex, $date, $transaction)
-//           ON DUPLICATE KEY UPDATE ${c.hash} = ${c.hash}"""
-//        .batchByName(data:_*)
-//        .apply()
-      val data2 = Seq(
-         Seq("ff", "gg", 8, 411616880, ZonedDateTime.now(), "OfferCreate", "r9cZA1mLK5R5Am25ArfXFmqgNwjZgnfk59", "blablabla"),
-         Seq("uu", "ll", 9, 411616790, ZonedDateTime.now(), "OfferCreate", "r3PDtZSa5LiYp1Ysn1vMuMzB59RzV3W9QH", "yfhgyfhgfhg")
-      )
+    case StoreAccountTx(raw) =>
+      val jsValue = Json.parse(raw)
+      val account = DbActor.parseAccount(jsValue)
+      val marker = DbActor.parseMarker(jsValue)
+      val data = DbActor.toAccTxBatchParams(DbActor.parseAccountTx(jsValue))
 
       sql"""insert into main.account (account, hash, ledger_index, date, human_date, transaction_type, txn_account, transaction)
            values (?,?,?,?,?,?,?,?)
            ON DUPLICATE KEY UPDATE hash = hash"""
-        .batch(data2:_*)
+        .batch(data:_*)
         .apply()
+      mainActor foreach(_ ! BatchCompleted(account, marker))
 
-//      withSQL {
-//        insert.into(Account).namedValues(c.account -> sqls.?, c.hash -> sqls.?,c.ledgerIndex -> sqls.?, c.date -> sqls.?, c.transaction -> sqls.?)
-//      }.batch(data: _*).apply()
-//      withSQL {
-//        insert.into(Account).values("aa", "dd", 5, ZonedDateTime.now)
-//      }.update.apply()
-
-
+    case "select all" =>
       val accounts: List[Account] = sql"select * from account".map(rs => Account(rs)).list.apply()
-      accounts.foreach(println)
-
+      accounts.foreach(a => info(a.toString))
   }
 
 
