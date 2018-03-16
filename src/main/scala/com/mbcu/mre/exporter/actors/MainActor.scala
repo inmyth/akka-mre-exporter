@@ -6,7 +6,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.mbcu.mre.exporter.Application.{file, system}
 import com.mbcu.mre.exporter.actors.DbActor.{BatchCompleted, StoreAccountTx}
-import com.mbcu.mre.exporter.actors.MainActor.Shutdown
+import com.mbcu.mre.exporter.actors.MainActor.{LogRemainder, Shutdown}
 import com.mbcu.mre.exporter.actors.WsActor.{SendJs, WsConnected, WsGotText}
 import com.mbcu.mre.exporter.models.AccountTx
 import com.mbcu.mre.exporter.utils.MyLogging
@@ -23,6 +23,8 @@ object MainActor {
   def props(configPath : String): Props = Props(new MainActor(configPath))
 
   case class Shutdown(code : Int)
+
+  object LogRemainder
 }
 
 class MainActor(filePath : String) extends Actor with MyLogging{
@@ -73,7 +75,7 @@ class MainActor(filePath : String) extends Actor with MyLogging{
           accounts.remove(0)
           self ! "start from head"
       }
-    case s : String if s == "log remaining accounts" => info(accounts mkString "\n")
+    case LogRemainder => info(accounts mkString "\n")
 
     case Shutdown(code) =>
       info(s"Stopping application, code $code")
@@ -88,7 +90,7 @@ class MainActor(filePath : String) extends Actor with MyLogging{
         10 second,
         600 second,
         scheduleActor,
-        "log remaining accounts"))
+        LogRemainder))
   }
 
   def setupWs() : Unit = {
