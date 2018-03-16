@@ -42,6 +42,7 @@ class MainActor(filePath : String) extends Actor with MyLogging{
 
       accounts ++= fromFile(filePath).getLines().toSeq
       setupWs()
+      setupScheduleLog()
       val db = context.actorOf(Props(new DbActor()), name = "db")
       dbActor = Some(db)
       db ! "start"
