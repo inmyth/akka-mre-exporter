@@ -1,6 +1,6 @@
 package com.mbcu.mre.exporter.actors
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.mbcu.mre.exporter.Application.{file, system}
@@ -27,7 +27,6 @@ object MainActor {
 class MainActor(filePath : String) extends Actor with MyLogging{
   var wsActor : Option[ActorRef] = None
   var dbActor : Option[ActorRef] = None
-  private var cancellable : Option[Cancellable] = None
   val minLedger : Int = ConfigFactory.load().getInt("data.ledgerIndexMin")
   val maxLedger: Int = ConfigFactory.load().getInt("data.ledgerIndexMax")
 
@@ -71,28 +70,25 @@ class MainActor(filePath : String) extends Actor with MyLogging{
           self ! "start from head"
       }
 
-    case s : String if s == "log orderbooks" => info(accounts mkString "\n")
-
     case Shutdown(code) =>
       info(s"Stopping application, code $code")
       implicit val executionContext: ExecutionContext = context.system.dispatcher
       context.system.scheduler.scheduleOnce(Duration.Zero)(System.exit(code))
   }
 
-def setupSchedulActor() :Unit = {
-  val scheduleActor = context.actorOf(Props(classOf[ScheduleActor]))
-  cancellable =Some(
-    context.system.scheduler.schedule(
-      10 second,
-      30 minutes,
-      scheduleActor,
-      "log orderbooks"))
-}
 
   def setupWs() : Unit = {
     val url = ConfigFactory.load().getString("rippled.url")
     val ws = context.actorOf(Props(new WsActor(url)), name = "ws")
     wsActor = Some(ws)
+//    implicit val timeout = Timeout(5 seconds)
     ws ! "start"
+//    val result = Await.result(fws, timeout.duration)
+//    result match {
+//      case WsConnected =>
+//        info(s"connected to $url")
+//        self ! "ws ready"
+//      case _ => println("connect fail")
+//    }
   }
 }
