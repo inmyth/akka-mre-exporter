@@ -1,6 +1,7 @@
 package com.mbcu.mre.exporter.actors
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.dispatch.ExecutionContexts._
 import akka.pattern.ask
 import akka.util.Timeout
 import com.mbcu.mre.exporter.Application.{file, system}
@@ -13,7 +14,7 @@ import com.typesafe.config.ConfigFactory
 import play.api.libs.json.{JsValue, Json}
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.duration._
 import scala.io.Source.fromFile
 import scala.util.{Failure, Success}
@@ -27,9 +28,11 @@ object MainActor {
 class MainActor(filePath : String) extends Actor with MyLogging{
   var wsActor : Option[ActorRef] = None
   var dbActor : Option[ActorRef] = None
+  private var cancellable : Option[Cancellable] = None
   val minLedger : Int = ConfigFactory.load().getInt("data.ledgerIndexMin")
   val maxLedger: Int = ConfigFactory.load().getInt("data.ledgerIndexMax")
 
+  implicit val ec: ExecutionContextExecutor = global
   var accounts : ListBuffer[String] = ListBuffer.empty
 
   override def receive: Receive = {
@@ -69,6 +72,7 @@ class MainActor(filePath : String) extends Actor with MyLogging{
           accounts.remove(0)
           self ! "start from head"
       }
+    case s : String if s == "log remaining accounts" => info(accounts mkString "\n")
 
     case Shutdown(code) =>
       info(s"Stopping application, code $code")
@@ -76,19 +80,20 @@ class MainActor(filePath : String) extends Actor with MyLogging{
       context.system.scheduler.scheduleOnce(Duration.Zero)(System.exit(code))
   }
 
+  def setupScheduleLog() : Unit = {
+    val scheduleActor = context.actorOf(Props(classOf[ScheduleActor]))
+    cancellable =Some(
+      context.system.scheduler.schedule(
+        10 second,
+        600 second,
+        scheduleActor,
+        "log remaining accounts"))
+  }
 
   def setupWs() : Unit = {
     val url = ConfigFactory.load().getString("rippled.url")
     val ws = context.actorOf(Props(new WsActor(url)), name = "ws")
     wsActor = Some(ws)
-//    implicit val timeout = Timeout(5 seconds)
     ws ! "start"
-//    val result = Await.result(fws, timeout.duration)
-//    result match {
-//      case WsConnected =>
-//        info(s"connected to $url")
-//        self ! "ws ready"
-//      case _ => println("connect fail")
-//    }
   }
 }
