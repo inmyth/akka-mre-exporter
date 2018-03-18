@@ -52,7 +52,6 @@ class MainActor(filePath : String) extends Actor with MyLogging{
     case WsConnected => self ! "start from head"
 
     case "start from head" =>
-//      val l = "rUmHjB6nMVeTLLYh7Sh2VkRtkZYc5GBtaF"
       if (accounts.isEmpty){
         self ! Shutdown(1)
       }
@@ -75,7 +74,14 @@ class MainActor(filePath : String) extends Actor with MyLogging{
           accounts.remove(0)
           self ! "start from head"
       }
-    case LogRemainder => info(accounts mkString "\n")
+    case LogRemainder =>
+      val s = accounts mkString "\n"
+      info(
+        s"""
+           |START
+           |$s
+           |END
+         """.stripMargin)
 
     case Shutdown(code) =>
       info(s"Stopping application, code $code")
