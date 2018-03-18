@@ -56,7 +56,9 @@ class MainActor(filePath : String) extends Actor with MyLogging{
         self ! Shutdown(1)
       }
       else {
+
         val acc = accounts.head
+        info(s"""Processing $acc""")
         val newAccTx = Json.toJson(new AccountTx(acc, minLedger, maxLedger, None))
         wsActor foreach(_ ! SendJs(newAccTx))
       }
@@ -71,6 +73,7 @@ class MainActor(filePath : String) extends Actor with MyLogging{
           wsActor foreach(_ ! SendJs(newAccTx))
 
         case _ =>
+          info(s"""Finished processing : ${accounts.head}""")
           accounts.remove(0)
           self ! "start from head"
       }
