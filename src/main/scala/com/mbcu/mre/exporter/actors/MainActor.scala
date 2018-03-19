@@ -4,8 +4,8 @@ import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import akka.dispatch.ExecutionContexts._
 import akka.pattern.ask
 import akka.util.Timeout
-import com.mbcu.mre.exporter.actors.DbActor.{BatchCompleted, StoreAccountTx}
-import com.mbcu.mre.exporter.actors.MainActor.{LogRemainder, Shutdown}
+import com.mbcu.mre.exporter.actors.DbActor.{BatchCompleted, StoreAccountTx, parseTransactionItem}
+import com.mbcu.mre.exporter.actors.MainActor.{LogBigAccounts, LogRemainder, Shutdown}
 import com.mbcu.mre.exporter.actors.WsActor.{SendJs, WsConnected, WsGotText}
 import com.mbcu.mre.exporter.models.AccountTx
 import com.mbcu.mre.exporter.utils.MyLogging
@@ -24,6 +24,8 @@ object MainActor {
   case class Shutdown(code : Int)
 
   object LogRemainder
+
+  object LogBigAccounts
 }
 
 class MainActor(filePath : String) extends Actor with MyLogging{
@@ -35,6 +37,7 @@ class MainActor(filePath : String) extends Actor with MyLogging{
 
   implicit val ec: ExecutionContextExecutor = global
   var accounts : ListBuffer[String] = ListBuffer.empty
+  var bigAccounts : ListBuffer[String] = ListBuffer.empty
 
   override def receive: Receive = {
 
@@ -63,7 +66,17 @@ class MainActor(filePath : String) extends Actor with MyLogging{
       }
 
     case WsGotText(text) =>
-      dbActor foreach(_ ! StoreAccountTx(text))
+      val jsValue = Json.parse(text)
+      val jsResult = jsValue \ "result"
+      val jsTransactions = (jsResult \ "transactions").as[List[JsValue]]
+      jsTransactions match {
+        case a if a.size > 200 =>
+          val acc = DbActor.parseAccount(jsValue)
+          bigAccounts += acc
+          self ! LogBigAccounts
+        case _ => dbActor foreach(_ ! StoreAccountTx(jsValue))
+      }
+
 
     case BatchCompleted(account, marker) =>
       marker match {
@@ -85,7 +98,19 @@ class MainActor(filePath : String) extends Actor with MyLogging{
            |END
          """.stripMargin)
 
+    case LogBigAccounts =>
+      val s = bigAccounts mkString "\n"
+      info(
+        s"""
+           |BIG ACCOUNTS
+           |$s
+           |END
+         """.stripMargin)
+
+
     case Shutdown(code) =>
+      self ! LogBigAccounts
+      self ! LogRemainder
       info(s"Stopping application, code $code")
       implicit val executionContext: ExecutionContext = context.system.dispatcher
       context.system.scheduler.scheduleOnce(Duration.Zero)(System.exit(code))

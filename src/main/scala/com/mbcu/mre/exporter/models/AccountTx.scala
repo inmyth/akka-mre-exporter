@@ -40,7 +40,8 @@ object AccountTx {
     "binary": false,
     "count": false,
     "limit": 10,
-    "forward": false
+    "forward": false,
+    "count" : false
   }
    */
   object Implicits {
@@ -55,8 +56,8 @@ object AccountTx {
         "limit" -> a.limit,
         "forward" -> a.forward,
         "binary" -> a.binary,
-        "command" -> a.command
-
+        "command" -> a.command,
+        "count" -> a.count
       )
     }
 
@@ -68,7 +69,8 @@ object AccountTx {
         (JsPath \ "limit").read[Int] and
         (JsPath \ "forward").read[Boolean] and
         (JsPath \ "binary").read[Boolean] and
-        (JsPath \ "command").read[String]
+        (JsPath \ "command").read[String] and
+        (JsPath \ "count").read[Boolean]
 
       ) (AccountTx.apply _)
   }
@@ -82,7 +84,8 @@ case class AccountTx (
                      limit : Int = 100,
                      forward : Boolean = false,
                      binary : Boolean = false,
-                     command : String = "account_tx"
+                     command : String = "account_tx",
+                     count : Boolean = false
                      )
 
 

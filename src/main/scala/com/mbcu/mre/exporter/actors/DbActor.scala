@@ -21,7 +21,7 @@ import scalikejdbc._
 
 object DbActor {
 
-  case class StoreAccountTx(raw : String)
+  case class StoreAccountTx(js : JsValue)
 
   case class BatchCompleted(account : String, nextMarker : Option[Marker])
 
@@ -77,8 +77,7 @@ var mainActor : Option[ActorRef] = None
   override def receive: Receive = {
     case "start" => mainActor = Some(sender())
 
-    case StoreAccountTx(raw) =>
-      val jsValue = Json.parse(raw)
+    case StoreAccountTx(jsValue) =>
       val account = DbActor.parseAccount(jsValue)
       val marker = DbActor.parseMarker(jsValue)
       val data = DbActor.toAccTxBatchParams(DbActor.parseAccountTx(jsValue))

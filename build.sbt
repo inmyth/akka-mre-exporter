@@ -1,6 +1,6 @@
 name := "akka-mre-exporter"
 
-version := "count.0.1"
+version := "count.0.1.1"
 
 scalaVersion := "2.12.4"
 
