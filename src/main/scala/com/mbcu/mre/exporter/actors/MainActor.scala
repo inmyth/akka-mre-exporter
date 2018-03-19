@@ -4,7 +4,6 @@ import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import akka.dispatch.ExecutionContexts._
 import akka.pattern.ask
 import akka.util.Timeout
-import com.mbcu.mre.exporter.Application.{file, system}
 import com.mbcu.mre.exporter.actors.DbActor.{BatchCompleted, StoreAccountTx}
 import com.mbcu.mre.exporter.actors.MainActor.{LogRemainder, Shutdown}
 import com.mbcu.mre.exporter.actors.WsActor.{SendJs, WsConnected, WsGotText}
@@ -53,7 +52,7 @@ class MainActor(filePath : String) extends Actor with MyLogging{
 
     case "start from head" =>
       if (accounts.isEmpty){
-        self ! Shutdown(1)
+        self ! Shutdown(0)
       }
       else {
 

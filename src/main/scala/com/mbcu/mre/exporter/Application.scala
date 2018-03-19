@@ -17,15 +17,20 @@ object Application extends App {
 
   import akka.actor.Props
 
-  implicit val system: ActorSystem = akka.actor.ActorSystem("dumper")
-  implicit val materializer: ActorMaterializer = akka.stream.ActorMaterializer()
 
-  val file = "./trade_wallet_addresses.txt"
-  val logDir = "./log/"
-  MyLoggingSingle.init(logDir)
-  DBs.setupAll()
-  val mainActor = system.actorOf(Props(new MainActor(file)), name = "main")
-  mainActor ! "start"
+  override def main(args: Array[String]): Unit = {
+    implicit val system: ActorSystem = akka.actor.ActorSystem("dumper")
+    implicit val materializer: ActorMaterializer = akka.stream.ActorMaterializer()
+
+//    val file = "./trade_wallet_addresses.txt"
+    val file = args(0)
+    val logDir = args(1)
+    MyLoggingSingle.init(logDir)
+    DBs.setupAll()
+    val mainActor = system.actorOf(Props(new MainActor(file)), name = "main")
+    mainActor ! "start"
+  }
+
 
 
 }

@@ -1,3 +1,9 @@
+0.1.2
+- changed normal return code after job finishes to 0
+
+0.1.1
+- argsed log and file paths
+
 0.1
 - breakthrough in json parsing
 - got rid of Slick
