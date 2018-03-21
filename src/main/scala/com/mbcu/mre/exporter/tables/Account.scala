@@ -15,7 +15,7 @@ object Account extends SQLSyntaxSupport[Account] {
     rs.dateTime("human_date"),
     rs.string("transaction_type"),
     rs.string("txn_account"),
-    rs.string("transaction"),
+    rs.string("transaction")
   )
 }
 
